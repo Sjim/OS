@@ -84,7 +84,7 @@ unsigned int rootFileStart;  //根目录文件开始处
 unsigned int childFileStart;      //数据区开始处
 
 const char* space=" "; //输出用空格
-
+const char* pre=". .. ";//输出文件内容前缀
 int main(){
     FILE *file_ptr=fopen("a.img","rb");  //获取引导文件
     Boot* boot_ptr=new Boot;
@@ -271,6 +271,7 @@ void printAllFilesFromRoot(FileTree*filetree_ptr,string parentPath){
     FileTree*head=filetree_ptr;
     my_print(parentPath.c_str(),parentPath.length(),0);
     cout<<endl;
+    my_print(pre,5,1);
     while(current->neighbor!=NULL){
         current=current->neighbor;
         const char* c_name=current->fileName.c_str();

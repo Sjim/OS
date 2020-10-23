@@ -21,13 +21,13 @@ my_print:
     push eax
     push ebx
     cmp edx,0
-    je toRed
-    mov ecx,color_blue
-    mov edx,blue_len
-    jmp changeColor
-toRed:
+    je toDef
     mov ecx,color_red
     mov edx,red_len
+    jmp changeColor
+toDef:
+    mov ecx,color_Default
+    mov edx,default_len
 changeColor:
     mov eax,4
     mov ebx,1
