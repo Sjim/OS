@@ -66,8 +66,8 @@ void printAllFilesFromRoot(FileTree*filetree_ptr,string parentPath);
 void printFilesByPath(FileTree*filetree_ptr,string path);
 void catFileContextByPath(FileTree*filetree_ptr,string path);
 void countFilesByPath(FileTree*filetree_ptr,string path);
-void printCountResult(FileTree* fileTree);
-void printFileNum(FileTree* fileTree,int flag);
+void printCountResult(FileTree* fileTree,string fileName);
+void printFileNum(FileTree* fileTree,string fileName,int flag);
 Path_input* getFilePath(string path);
 
 // void my_print(string* output_str,int length,int color_num){
@@ -297,7 +297,11 @@ FileTree* getFileByPath(FileTree*filetree_ptr,string path){
     FileTree*current=filetree_ptr;
     Path_input*path_ptr=new Path_input;
     getFilePath(path,path_ptr);
-
+    Path_input*temp = path_ptr;
+    while(temp!=NULL){
+	cout<<temp->fileName<<endl;
+	temp=temp->childFile;
+}
     if(path_ptr->childFile==NULL||path_ptr->childFile->fileName!="HOME"){
         current=NULL;
     }else{
@@ -385,43 +389,51 @@ void countFilesByPath(FileTree*filetree_ptr,string path){
         my_print(message.c_str(),message.length(),0);
     }
     else{
-        printCountResult(current->neighbor);
+	
+	if(path=="/HOME"){
+		cout<<current->neighbor->fileName<<endl;
+	    printCountResult(current,"/HOME");
+	    
+	}
+	else{
+            printCountResult(current->children,current->fileName);
+	}
     }
 }
-void printCountResult(FileTree*fileTree){
+void printCountResult(FileTree*fileTree,string fileName){
     
     FileTree*current=fileTree;
     FileTree*head=current;
-    printFileNum(current,1);
+  
+    printFileNum(current,fileName,0);
     my_print(":\n",2,0);
-    if(head->fileName!="/HOME"){
+    if(fileName!="HOME"){
 	    my_print(".\n",2,1);
 	    my_print("..\n",3,1);
 	    }
-	    if(head->children!=NULL){
-	    current=current->children;
-	    printFileNum(current,0);
-	    while(current->neighbor!=NULL){
-		current=current->neighbor;
-		printFileNum(current,0);
-	    }
-	    current=head->children;
-	    printCountResult(current);
-	    while(current->neighbor!=NULL){
-		current=current->neighbor;
-		printCountResult(current);
-	    }
+  
+    while(current->neighbor!=NULL){
+	current=current->neighbor;
+	
+	printFileNum(current->children,current->fileName,1);
+	
+    }
+    current=head;
+    while(current->neighbor!=NULL){
+	current=current->neighbor;
+	if(current->children!=NULL){
+	printCountResult(current->children,current->fileName);
+	}
     }
 }
-void printFileNum(FileTree *fileTree,int flag){
+void printFileNum(FileTree *fileTree,string fileName,int flag){
     FileTree *current = fileTree;
     FileTree *head = current;
     string message;
+    int fileNum=0;
+    int dirNum=0;
+    if(fileTree!=NULL){
     if(!fileTree->isFile){
-	int fileNum=0;
-        int dirNum=0;
-	if(current->children!=NULL){
-		current=current->children;
 		while(current->neighbor!=NULL){
 		    current=current->neighbor;
 		    if(current->isFile){
@@ -430,20 +442,20 @@ void printFileNum(FileTree *fileTree,int flag){
 		    else{
 			dirNum++;
 		    }
-	}
+
     }
     string message=" "+to_string(fileNum)+" "+to_string(dirNum);
     
-    if(flag){
+    if(!flag){
 	my_print(head->fileName.c_str(),head->fileName.length(),0);
     }else{
 	my_print(head->fileName.c_str(),head->fileName.length(),1);
     }
     }
     else{
-	string message=" ";
+	string message="你看错了";
     }
     my_print(message.c_str(),message.length(),0);
-	
+	}
 }
 
