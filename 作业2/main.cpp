@@ -66,7 +66,8 @@ void printAllFilesFromRoot(FileTree*filetree_ptr,string parentPath);
 void printFilesByPath(FileTree*filetree_ptr,string path);
 void catFileContextByPath(FileTree*filetree_ptr,string path);
 void countFilesByPath(FileTree*filetree_ptr,string path);
-void printCountResult(FileTree* fileTree,string head_space,string parentName);
+void printCountResult(FileTree* fileTree);
+void printFileNum(FileTree* fileTree,int flag);
 Path_input* getFilePath(string path);
 
 // void my_print(string* output_str,int length,int color_num){
@@ -142,6 +143,7 @@ void getFilePath(string path,Path_input* path_ptr){
             while(path[index]!='/'&&index<length){
                 index++;
             }
+	    //path_ptr->childFile=new Path_input;
             path_ptr=path_ptr->childFile=new Path_input;
             path_ptr->fileName=path.substr(filename_start,index-filename_start);
             index++;
@@ -295,6 +297,7 @@ FileTree* getFileByPath(FileTree*filetree_ptr,string path){
     FileTree*current=filetree_ptr;
     Path_input*path_ptr=new Path_input;
     getFilePath(path,path_ptr);
+
     if(path_ptr->childFile==NULL||path_ptr->childFile->fileName!="HOME"){
         current=NULL;
     }else{
@@ -382,35 +385,65 @@ void countFilesByPath(FileTree*filetree_ptr,string path){
         my_print(message.c_str(),message.length(),0);
     }
     else{
-        if(path=="/HOME"){
-            printCountResult(current,"","HOME");
-        }else{
-            printCountResult(current->children,"",current->fileName);
-        }
+        printCountResult(current->neighbor);
     }
 }
-void printCountResult(FileTree*fileTree,string head_space,string parentName){
-    int fileNum=0;
-    int dirNum=0;
+void printCountResult(FileTree*fileTree){
+    
     FileTree*current=fileTree;
     FileTree*head=current;
-    while(current->neighbor!=NULL){
-        current=current->neighbor;
-        if(current->isFile){
-            fileNum++;
-        }else{
-            dirNum++;
-        }
+    printFileNum(current,1);
+    my_print(":\n",2,0);
+    if(head->fileName!="/HOME"){
+	    my_print(".\n",2,1);
+	    my_print("..\n",3,1);
+	    }
+	    if(head->children!=NULL){
+	    current=current->children;
+	    printFileNum(current,0);
+	    while(current->neighbor!=NULL){
+		current=current->neighbor;
+		printFileNum(current,0);
+	    }
+	    current=head->children;
+	    printCountResult(current);
+	    while(current->neighbor!=NULL){
+		current=current->neighbor;
+		printCountResult(current);
+	    }
     }
-    string message=head_space+parentName+": "+to_string(fileNum)+" file(s), "+to_string(dirNum)+" dir(s)";
+}
+void printFileNum(FileTree *fileTree,int flag){
+    FileTree *current = fileTree;
+    FileTree *head = current;
+    string message;
+    if(!fileTree->isFile){
+	int fileNum=0;
+        int dirNum=0;
+	if(current->children!=NULL){
+		current=current->children;
+		while(current->neighbor!=NULL){
+		    current=current->neighbor;
+		    if(current->isFile){
+			fileNum++;
+		    }
+		    else{
+			dirNum++;
+		    }
+	}
+    }
+    string message=" "+to_string(fileNum)+" "+to_string(dirNum);
+    
+    if(flag){
+	my_print(head->fileName.c_str(),head->fileName.length(),0);
+    }else{
+	my_print(head->fileName.c_str(),head->fileName.length(),1);
+    }
+    }
+    else{
+	string message=" ";
+    }
     my_print(message.c_str(),message.length(),0);
-    cout<<endl;
-    current=head;
-    while(current->neighbor!=NULL){
-        current=current->neighbor;
-        if(current->children!=NULL){
-            printCountResult(current->children,head_space+"  ",current->fileName);
-        }
-    }
+	
 }
 
