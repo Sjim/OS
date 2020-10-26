@@ -39,7 +39,7 @@ struct FileTable {
 	B2 DIR_WrtTime;
 	B2 DIR_WrtDate;
 	B2 DIR_FstClus;
-	B DIR_FileSize[4];
+	unsigned int DIR_FileSize;
 };
 #pragma pack()
 struct FileTree {
@@ -47,6 +47,7 @@ struct FileTree {
 	FileTree* children = NULL;
 	bool isFile = false;
 	unsigned int clusNum;
+	unsigned int size;
 	string fileName = "";
 };
 struct Path_input {
@@ -67,8 +68,9 @@ void printFilesByPath(FileTree*filetree_ptr, string path);
 void catFileContextByPath(FileTree*filetree_ptr, string path);
 void countFilesByPath(FileTree*filetree_ptr, string path);
 void printCountResult(FileTree* fileTree, string fileName);
-void printFileNum(FileTree* fileTree, string fileName, int flag);
+void printFileNum(FileTree* fileTree, string fileName, int flag, int size);
 Path_input* getFilePath(string path);
+void errorMessage();
 void my_print(const char* output_str, int length, int color_num);
 void my_print(const char* output_str, int length, int color_num) {
 	cout << output_str;
@@ -162,13 +164,14 @@ void getFilePath(string path, Path_input* path_ptr) {
 void handleInputCommand(string input_command, FILE*file_ptr, FileTree* filetree_ptr) {
 	int length = input_command.length();
 	int count;
-	string path;
+	string path = "/HOME";
 
 	if (input_command == "ls") {
 		printAllFilesFromRoot(filetree_ptr, "/HOME");
 	}
 	else if (input_command.substr(0, 2) == "ls") {
 		int flag = 0;
+		int numOfFile = 0;
 		count = 2;
 		while (input_command[count] == ' ') {
 			count++;
@@ -180,19 +183,22 @@ void handleInputCommand(string input_command, FILE*file_ptr, FileTree* filetree_
 		while (all != NULL) {
 			if (all[0] == '/') {
 				path = all;
+				numOfFile++;
+				if (numOfFile > 1) {
+					errorMessage();
+					return;
+				}
 			}
 			else if (!strcmp(all, "-l") || !strcmp(all, "-ll")) {
 				flag = 1;
 			}
 			else {
-				string message = "Invalid input";
-				const char* c_message = message.c_str();
-				my_print(c_message, message.length(), 0);
-				cout << endl;
+				errorMessage();
 				return;
 			}
 			all = strtok(NULL, " ");
 		}
+
 		if (flag)
 			countFilesByPath(filetree_ptr, path);
 		else
@@ -207,11 +213,14 @@ void handleInputCommand(string input_command, FILE*file_ptr, FileTree* filetree_
 		catFileContextByPath(filetree_ptr, path);
 	}
 	else {
-		string message = "Invalid input";
-		const char* c_message = message.c_str();
-		my_print(c_message, message.length(), 0);
-		cout << endl;
+		errorMessage();
 	}
+}
+void errorMessage() {
+	string message = "Invalid input";
+	const char* c_message = message.c_str();
+	my_print(c_message, message.length(), 0);
+	cout << endl;
 }
 int initFileTree(FileTree* filetree_ptr) {
 	FileTree* current = filetree_ptr;
@@ -245,6 +254,7 @@ int initFileTree(FileTree* filetree_ptr) {
 		}
 		else {
 			current->isFile = true;
+			current->size = filetable_ptr->DIR_FileSize;
 		}
 
 		fread(filetable_ptr, 1, 32, rootFile_ptr);
@@ -281,6 +291,7 @@ FileTree* fillTreeByChildrenFile(FileTree* current, FILE* currentFile_ptr, FileT
 		}
 		else {
 			current->isFile = true;
+			current->size = filetable_ptr->DIR_FileSize;
 		}
 		fread(filetable_ptr, 1, 32, tempLoopIndex);
 	}
@@ -376,7 +387,7 @@ void printFilesByPath(FileTree*filetree_ptr, string path) {
 		}
 	}
 	else {
-		string message = "Cannot find file!";
+		string message = "Cannot find file!\n";
 		my_print(message.c_str(), message.length(), 0);
 	}
 }
@@ -398,7 +409,7 @@ void catFileContextByPath(FileTree*filetree_ptr, string path) {
 			fclose(file);
 		}
 		else {
-			string message = "Error: is not a file!";
+			string message = "Error: is not a file!\n";
 			my_print(message.c_str(), message.length(), 0);
 		}
 	}
@@ -406,7 +417,7 @@ void catFileContextByPath(FileTree*filetree_ptr, string path) {
 void countFilesByPath(FileTree*filetree_ptr, string path) {
 	FileTree*current = getFileByPath(filetree_ptr, path);
 	if (current == NULL) {
-		string message = "Error: Cannot find File!";
+		string message = "Error: Cannot find File!\n";
 		my_print(message.c_str(), message.length(), 0);
 	}
 	else {
@@ -424,7 +435,7 @@ void printCountResult(FileTree*fileTree, string fileName) {
 	FileTree*current = fileTree;
 	FileTree*head = current;
 
-	printFileNum(current, fileName, 0);
+	printFileNum(current, fileName, 0, 0);
 	my_print(":\n", 2, 0);
 	if (fileName != "HOME") {
 		my_print(".\n", 2, 1);
@@ -434,7 +445,7 @@ void printCountResult(FileTree*fileTree, string fileName) {
 	while (current->neighbor != NULL) {
 		current = current->neighbor;
 
-		printFileNum(current->children, current->fileName, 1);
+		printFileNum(current->children, current->fileName, 1, current->size);
 
 	}
 	current = head;
@@ -447,7 +458,7 @@ void printCountResult(FileTree*fileTree, string fileName) {
 	}
 
 }
-void printFileNum(FileTree *fileTree, string fileName, int flag) {
+void printFileNum(FileTree *fileTree, string fileName, int flag, int size) {
 	FileTree *current = fileTree;
 	FileTree *head = current;
 	string message;
@@ -480,7 +491,7 @@ void printFileNum(FileTree *fileTree, string fileName, int flag) {
 	}
 	else {
 		my_print(fileName.c_str(), fileName.length(), 0);
-		message = " 你看错了\n";
+		message = " " + to_string(size) + "\n";
 	}
 	my_print(message.c_str(), message.length(), 0);
 
