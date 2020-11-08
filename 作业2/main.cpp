@@ -70,6 +70,8 @@ void countFilesByPath(FileTree*filetree_ptr, string path);
 void printCountResult(FileTree* fileTree, string fileName);
 void printFileNum(FileTree* fileTree, string fileName, int flag, int size);
 Path_input* getFilePath(string path);
+bool cmp(string a, string b);
+vector<string> split(string s, const char *c);
 void errorMessage();
 void my_print(const char* output_str, int length, int color_num);
 void my_print(const char* output_str, int length, int color_num) {
@@ -178,27 +180,25 @@ void handleInputCommand(string input_command, FILE*file_ptr, FileTree* filetree_
 		}
 
 		string temp = input_command.substr(count, length - count);
-		char *data = const_cast<char *>(temp.c_str());
-		char* all = strtok(data, " ");
-		while (all != NULL) {
-			if (all[0] == '/') {
-				path = all;
+
+		vector<string> all = split(temp, " ");
+		for (int i = 0; i < all.size(); i++) {
+			if (all[i][0] == '/') {
+				path = all[i];
 				numOfFile++;
 				if (numOfFile > 1) {
 					errorMessage();
 					return;
 				}
 			}
-			else if (!strcmp(all, "-l") || !strcmp(all, "-ll")) {
+			else if (cmp(all[i], "-l") || cmp(all[i], "-ll")) {
 				flag = 1;
 			}
 			else {
 				errorMessage();
 				return;
 			}
-			all = strtok(NULL, " ");
 		}
-
 		if (flag)
 			countFilesByPath(filetree_ptr, path);
 		else
@@ -215,6 +215,35 @@ void handleInputCommand(string input_command, FILE*file_ptr, FileTree* filetree_
 	else {
 		errorMessage();
 	}
+}
+vector<string> split(string s, const char *c) {
+	vector<string> res = vector<string>();
+	string temp = "";
+	for (int i = 0; i < s.length(); i++) {
+		if (s[i] != ' ') {
+			temp += s[i];
+		}
+		else if (i < s.length() - 1 && s[i + 1] == ' ') {
+			continue;
+		}
+		else {
+			res.push_back(temp);
+			temp = "";
+		}
+	}
+	res.push_back(temp);
+	return res;
+}
+bool cmp(string a, string b) {
+	if (a.length() != b.length()) {
+		return false;
+	}
+	for (int i = 0; i < a.length(); i++) {
+		if (a[i] != b[i]) {
+			return false;
+		}
+	}
+	return true;
 }
 void errorMessage() {
 	string message = "Invalid input";
