@@ -76,7 +76,6 @@ void errorMessage();
 void my_print(const char* output_str, int length, int color_num);
 void my_print(const char* output_str, int length, int color_num) {
 	cout << output_str;
-	//printf("%c", *output_str);
 }
 
 
@@ -255,20 +254,20 @@ int initFileTree(FileTree* filetree_ptr) {
 	FileTree* current = filetree_ptr;
 	FILE*rootFile_ptr = fopen("a.img", "rb");    //根目录指针
 	FILE*childFile_ptr = fopen("a.img", "rb");   //根目录下子目录指针
-	fseek(rootFile_ptr, rootFileStart, SEEK_SET);
+	fseek(rootFile_ptr, rootFileStart, SEEK_SET); //指针移动到文件开始处
 	FileTable* filetable_ptr = new FileTable;
 	string filename = "";
 	int count = 0;
 	fread(filetable_ptr, 1, 32, rootFile_ptr);
 	while (filetable_ptr->DIR_Name[0] != 0x0 && ftell(rootFile_ptr) < childFileStart) {
-		if (filetable_ptr->DIR_Name[0] == 0xe5) {
+		if (filetable_ptr->DIR_Name[0] == 0xe5) { //
 			fread(filetable_ptr, 1, 32, rootFile_ptr);
 			continue;
 		}
 		current = current->neighbor = new FileTree;
 		filename = "";
 		for (count = 0; count < 0xB; count++) {
-			if (filetable_ptr->DIR_Name[count] != 0x20) {
+			if (filetable_ptr->DIR_Name[count] != 0x20) {//space
 				filename += filetable_ptr->DIR_Name[count];
 			}
 			if (count == 7 && filetable_ptr->DIR_Attr != 0x10) {
