@@ -55,10 +55,10 @@ struct Path_input {
 	Path_input* childFile = NULL;
 };
 
-//extern "C" void* my_print(const char* output_str, int length, int color_num);    //nasm对应输出
+extern "C" void* my_print(const char* output_str, int length, int color_num);    //nasm对应输出
 
-int initBoot(FILE*file_ptr, Boot*boot);
-int initFileTree(FileTree* filetree_ptr);
+void initBoot(FILE*file_ptr, Boot*boot);
+void initFileTree(FileTree* filetree_ptr);
 FileTree* fillTreeByChildrenFile(FileTree* current, FILE* currentFile_ptr, FileTable*filetable_ptr, unsigned int current_clusNum);
 FileTree* getFileByPath(FileTree* filetree_ptr, string path);
 void initBasicData(Boot*boot_ptr);
@@ -73,10 +73,11 @@ Path_input* getFilePath(string path);
 bool cmp(string a, string b);
 vector<string> split(string s, const char *c);
 void errorMessage();
-void my_print(const char* output_str, int length, int color_num);
+int getFatValue(FILE *file, int clusNum);
+/*void my_print(const char* output_str, int length, int color_num);
 void my_print(const char* output_str, int length, int color_num) {
 	cout << output_str;
-}
+}*/
 
 
 unsigned int bytesPerSec;   //每扇区字节数
@@ -94,22 +95,9 @@ int main() {
 	FILE *file_ptr = fopen("a.img", "rb");  //获取引导文件
 	Boot* boot_ptr = new Boot;
 	FileTree*filetree_ptr = new FileTree;
-	int initBoot_result = initBoot(file_ptr, boot_ptr);
+	initBoot(file_ptr, boot_ptr);
 	initBasicData(boot_ptr);
-	int initFileTree_result = initFileTree(filetree_ptr);
-
-	if (initBoot_result == 1) {
-		cout << "Load boot failed!" << endl;
-	}
-	else {
-		cout << "Load boot success!" << endl;
-	}
-	if (initFileTree_result == 1) {
-		cout << "Init FileTree failed!" << endl;
-	}
-	else {
-		cout << "Init FileTree success!" << endl;
-	}
+	initFileTree(filetree_ptr);
 
 	string operation_command;
 	getline(cin, operation_command);
@@ -133,9 +121,8 @@ void initBasicData(Boot*boot_ptr) {
 	rootFileStart = bytesPerSec * (numFATs*FATSz16 + rsvdSecCnt);
 	childFileStart = bytesPerSec * (numFATs*FATSz16 + rsvdSecCnt + (rootEntCnt * 32 + bytesPerSec - 1) / bytesPerSec);
 }
-int initBoot(FILE*file_ptr, Boot*boot) {
+void initBoot(FILE*file_ptr, Boot*boot) {
 	fread(boot, 1, 0x200, file_ptr);
-	return 0;
 }
 void getFilePath(string path, Path_input* path_ptr) {
 	int length = path.length();
@@ -250,7 +237,7 @@ void errorMessage() {
 	my_print(c_message, message.length(), 0);
 	cout << endl;
 }
-int initFileTree(FileTree* filetree_ptr) {
+void initFileTree(FileTree* filetree_ptr) {
 	FileTree* current = filetree_ptr;
 	FILE*rootFile_ptr = fopen("a.img", "rb");    //根目录指针
 	FILE*childFile_ptr = fopen("a.img", "rb");   //根目录下子目录指针
@@ -290,7 +277,7 @@ int initFileTree(FileTree* filetree_ptr) {
 	fclose(rootFile_ptr);
 	fclose(childFile_ptr);
 	delete(filetable_ptr);
-	return 0;
+	
 }
 FileTree* fillTreeByChildrenFile(FileTree* current, FILE* currentFile_ptr, FileTable* filetable_ptr, unsigned int current_clusNum) {
 	FILE*tempLoopIndex = fopen("a.img", "rb");
@@ -423,25 +410,60 @@ void catFileContextByPath(FileTree*filetree_ptr, string path) {
 	FileTree*current = getFileByPath(filetree_ptr, path);
 	if (current != NULL) {
 		if (current->isFile) {
+			int current_cluster = current->clusNum;
 			FILE* file = fopen("a.img", "rb");
 			string context = "";
-			fseek(file, childFileStart + bytesPerSec * secPerClus*(current->clusNum - 2), SEEK_SET);
-			char oneByte[1];
-			fread(oneByte, 1, 1, file);
-			while (oneByte[0] != 0 && ftell(file) < childFileStart + bytesPerSec * secPerClus*(current->clusNum - 1)) {
-				context += oneByte[0];
+			do {
+				fseek(file, childFileStart + bytesPerSec * secPerClus*(current_cluster - 2), SEEK_SET);
+				char oneByte[1];
 				fread(oneByte, 1, 1, file);
-			}
+				while (oneByte[0] != 0 && ftell(file) < childFileStart + bytesPerSec * secPerClus*(current_cluster - 1)) {
+					context += oneByte[0];
+					fread(oneByte, 1, 1, file);
+				}
+				current_cluster = getFatValue(file, current_cluster);
+			} while (current_cluster < 0xff8);
 			my_print(context.c_str(), context.length(), 0);
 			cout << endl;
 			fclose(file);
 		}
 		else {
-			string message = "Error: is not a file!\n";
+			string message = "It is not a file!\n";
 			my_print(message.c_str(), message.length(), 0);
 		}
 	}
 }
+
+int getFatValue(FILE *file, int clusNum) {
+	int base = rsvdSecCnt * bytesPerSec; //fat 开始
+	int pos = base +clusNum*3/2; //
+	int type = 0;
+	if (clusNum % 2 == 0) type = 0;
+	else type = 1;
+	B num1;
+	B *num1_ptr = &num1;
+	B num2;
+	B *num2_ptr = &num2;
+	int check;
+	
+	int res = 0;
+	if (clusNum%2==0) {
+		fseek(file, pos, SEEK_SET);
+		fread(num1_ptr, 1, 1, file);
+		fread(num2_ptr, 1, 1, file);
+		num2 &= 0x0f;
+		res = (num2 << 8) + num1;
+	}
+	else {
+		fseek(file, pos, SEEK_SET);
+		fread(num1_ptr, 1, 1, file);
+		fread(num2_ptr, 1, 1, file);
+		num1 &= 0xf0;
+		res = (num1 >> 4) + (num2 << 4);
+	}
+	return res;
+}
+
 void countFilesByPath(FileTree*filetree_ptr, string path) {
 	FileTree*current = getFileByPath(filetree_ptr, path);
 	if (current == NULL) {
