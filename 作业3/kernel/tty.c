@@ -54,6 +54,7 @@ PRIVATE void init_tty(TTY* p_tty)
 	p_tty->p_inbuf_head = p_tty->p_inbuf_tail = p_tty->in_buf;
 
         is_esc_mode=0;
+	
 	init_screen(p_tty);
 }
 
@@ -108,6 +109,10 @@ PUBLIC void in_process(TTY* p_tty, u32 key)
 			if ((key & FLAG_ALT_L) || (key & FLAG_ALT_R)) {
 				select_console(raw_code - F1);
 			}
+			break;
+		case CTRL_L:
+		case CTRL_R:
+			p_tty->p_console->ctrl=1;
 			break;
                 default:
                         break;

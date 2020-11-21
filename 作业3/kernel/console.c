@@ -26,7 +26,6 @@ PRIVATE void set_cursor(unsigned int position);
 PRIVATE void set_video_start_addr(u32 addr);
 PRIVATE void flush(CONSOLE* p_con);
 
-
 PRIVATE int is_esc_and_enter;
 PRIVATE u8* esc_mode_ptr;
 /*======================================================================*
@@ -43,7 +42,7 @@ PUBLIC void init_screen(TTY* p_tty)
 	p_tty->p_console->original_addr      = nr_tty * con_v_mem_size;
 	p_tty->p_console->v_mem_limit        = con_v_mem_size;
 	p_tty->p_console->current_start_addr = p_tty->p_console->original_addr;
-
+    p_tty->p_console->ctrl=0;
 	/* 默认光标位置在最开始处 */
 	p_tty->p_console->cursor = p_tty->p_console->original_addr;
 
@@ -80,38 +79,37 @@ PUBLIC void out_char(CONSOLE* p_con, char ch)
 {
 	u8* p_vmem = (u8*)(V_MEM_BASE + p_con->cursor * 2);
         int temp_loc=0;
+    p_con->last2Char = p_con->lastChar;
 	switch(ch) {
 	case '\n':
-                if(is_esc_mode){
-                       is_esc_and_enter=1;
-                       int length=(p_vmem-esc_mode_ptr)/2;
-                       u8* head=(u8*)(V_MEM_BASE + p_con->original_addr * 2);
-                       while(head<esc_mode_ptr){
-                           int is_match=1;
-                           int temp_count=0;
-                           u8* temp=head;
-                           while(temp_count<length){
-                               if(*temp!=*(esc_mode_ptr+temp_count*2)){
-                                    is_match=0;
-                                    break;
-                                }
-                                temp_count++;
-                                temp=temp+2;
-                           }
-                           temp=head;
-                           temp_count=0;
-                           if(is_match){
-                           while(temp_count<length){
-                                *(temp+1)=ESC_CHAR_COLOR;
-                                temp_count++;  
-                                temp=temp+2;
-                           }
-                          }
-                           head=head+2;
-                       }
-                       
-                       
-                }else{
+        if(is_esc_mode){//变色环节
+            is_esc_and_enter=1;
+            int length=(p_vmem-esc_mode_ptr)/2;
+            u8* head=(u8*)(V_MEM_BASE + p_con->original_addr * 2);
+            while(head<esc_mode_ptr){
+                int is_match=1;
+                int temp_count=0;
+                u8* temp=head;
+                while(temp_count<length){
+                    if(*temp!=*(esc_mode_ptr+temp_count*2)){
+                        is_match=0;
+                        break;
+                    }
+                    temp_count++;
+                    temp=temp+2;
+                }
+                temp=head;
+                temp_count=0;
+                if(is_match){
+                    while(temp_count<length){
+                        *(temp+1)=ESC_CHAR_COLOR;
+                        temp_count++;  
+                        temp=temp+2;
+                    }
+                }
+                head=head+2;
+            }
+        }else{
 		if (p_con->cursor < p_con->original_addr +
 		    p_con->v_mem_limit - SCREEN_WIDTH) {
 			p_con->cursor = p_con->original_addr + SCREEN_WIDTH * 
@@ -133,7 +131,7 @@ PUBLIC void out_char(CONSOLE* p_con, char ch)
                                p_vmem=p_vmem-2;
                           }
                         }
-                       else if(*(p_vmem-2)==' '&&*(p_vmem-1)==ESC_CHAR_COLOR){
+                       else if(*(p_vmem-2)==' '&&*(p_vmem-1)==ESC_CHAR_COLOR){//删除/t
                            int temp_limit=4;
                        while(*(p_vmem-2)==' '&&*(p_vmem-1)==ESC_CHAR_COLOR&&temp_limit>0){
                            p_con->cursor--;
@@ -157,13 +155,13 @@ PUBLIC void out_char(CONSOLE* p_con, char ch)
                 while(temp_loc!=0){
                     p_con->cursor++;
                     *p_vmem=' ';
-                    *(p_vmem+1)=ESC_CHAR_COLOR;
+                    *(p_vmem+1)=ESC_CHAR_COLOR;//证明是\t
                     p_vmem=p_vmem+2;
                     temp_loc=temp_loc-2;
                 }
                 }
                 break;
-        case '\e':
+        case '\e'://遇到esc
                 if(!is_esc_mode){
                       is_esc_mode=1;
                       esc_mode_ptr=(u8*)(V_MEM_BASE+p_con->cursor*2);
@@ -172,7 +170,8 @@ PUBLIC void out_char(CONSOLE* p_con, char ch)
                      if(is_esc_and_enter){
                          is_esc_mode=0;
                          is_esc_and_enter=0;
-                 
+
+                        //删除红色的字  
                          while(p_vmem>esc_mode_ptr){
                              p_vmem=(u8*)(V_MEM_BASE + p_con->cursor * 2);
                              *(p_vmem)='\0';
@@ -181,6 +180,7 @@ PUBLIC void out_char(CONSOLE* p_con, char ch)
                         }
                          p_con->cursor++;
                          u8* temp_mem_ptr=(u8*)(V_MEM_BASE+p_con->original_addr*2);
+                         //恢复白色
                          while(temp_mem_ptr<p_vmem){
                              if(*(temp_mem_ptr)==' '&&*(temp_mem_ptr+1)==ESC_CHAR_COLOR){
                                     temp_mem_ptr=temp_mem_ptr+2;
@@ -193,20 +193,49 @@ PUBLIC void out_char(CONSOLE* p_con, char ch)
                      }                
                 }  
                 break;
+        case 'z'://ctrl+c
+            if(p_con->ctrl){
+                *p_vmem++ = 'h';
+                *p_vmem++ = DEFAULT_CHAR_COLOR;
+            }
+           
+            // if(p_con->lastChar!='\0'){
+            //     switch (p_con->lastChar)
+            //     {
+            //     case '\b':
+            //         switch (p_con->last2Char)
+            //         {
+            //         case /* constant-expression */:
+            //             /* code */
+            //             break;
+                    
+            //         default:
+            //             break;
+            //         }
+            //         break;
+                
+            //     default:
+            //         break;
+            //     }
+            // }
+            
+            break;
 	default:
                 if(!is_esc_and_enter){
-		if (p_con->cursor <
-		    p_con->original_addr + p_con->v_mem_limit - 1) {
-			*p_vmem++ = ch;
+                    if (p_con->cursor <
+                        p_con->original_addr + p_con->v_mem_limit - 1) {
+                        *p_vmem++ = ch;
                         if(!is_esc_mode){
-			*p_vmem++ = DEFAULT_CHAR_COLOR;}
-                        else{ *p_vmem++ = ESC_CHAR_COLOR;}
-			p_con->cursor++;
-		}
+                            *p_vmem++ = DEFAULT_CHAR_COLOR;}
+                        else{ 
+                            *p_vmem++ = ESC_CHAR_COLOR;
+                        }
+                        p_con->cursor++;
+                    }
                 }
 		break;
 	}
-
+    p_con->lastChar = ch;
 	while (p_con->cursor >= p_con->current_start_addr + SCREEN_SIZE) {
 		scroll_screen(p_con, SCR_DN);
 	}
