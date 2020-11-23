@@ -79,7 +79,7 @@ PUBLIC void out_char(CONSOLE* p_con, char ch)
 {
 	u8* p_vmem = (u8*)(V_MEM_BASE + p_con->cursor * 2);
         int temp_loc=0;
-    p_con->last2Char = p_con->lastChar;
+    
 	switch(ch) {
 	case '\n':
         if(is_esc_mode){//变色环节
@@ -195,31 +195,41 @@ PUBLIC void out_char(CONSOLE* p_con, char ch)
                 break;
         case 'z'://ctrl+c
             if(p_con->ctrl){
-                *p_vmem++ = 'h';
-                *p_vmem++ = DEFAULT_CHAR_COLOR;
-            }
-           
-            // if(p_con->lastChar!='\0'){
-            //     switch (p_con->lastChar)
-            //     {
-            //     case '\b':
-            //         switch (p_con->last2Char)
-            //         {
-            //         case /* constant-expression */:
-            //             /* code */
-            //             break;
-                    
-            //         default:
-            //             break;
-            //         }
-            //         break;
+                p_con->ctrl=0;
                 
-            //     default:
-            //         break;
-            //     }
-            // }
+                switch (p_con->lastChar)
+                {
+                case '\b':
+                    switch (p_con->last2Char)
+                    {
+                    case '\0':
+                    case '\b':
+                        p_con->lastChar=p_con->last2Char;
+                        p_con->last2Char='\0';
+                        break;
+                    
+                    default:
+                        p_con->lastChar=p_con->last2Char;
+                        p_con->last2Char='\0';
+                        out_char(p_con,p_con->lastChar);
+                        p_con->lastChar=p_con->last2Char;
+                        p_con->last2Char='\0';
+                        break;
+                    }
+                    break;
+                case '\0':
+                    break;
             
-            break;
+                default:
+                    p_con->lastChar=p_con->last2Char;
+                    p_con->last2Char='\0';
+                    out_char(p_con,'\b');
+                    p_con->lastChar=p_con->last2Char;
+                    p_con->last2Char='\0';
+                    break;
+                }
+                break;
+            }
 	default:
                 if(!is_esc_and_enter){
                     if (p_con->cursor <
@@ -235,6 +245,7 @@ PUBLIC void out_char(CONSOLE* p_con, char ch)
                 }
 		break;
 	}
+    p_con->last2Char = p_con->lastChar;
     p_con->lastChar = ch;
 	while (p_con->cursor >= p_con->current_start_addr + SCREEN_SIZE) {
 		scroll_screen(p_con, SCR_DN);
