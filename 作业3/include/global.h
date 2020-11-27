@@ -26,7 +26,7 @@ EXTERN	PROCESS*	p_proc_ready;
 
 EXTERN	int		nr_current_console;
 
-EXTERN  int             is_esc_mode;
+EXTERN  int            is_esc_mode;
 
 extern	PROCESS		proc_table[];
 extern	char		task_stack[];
