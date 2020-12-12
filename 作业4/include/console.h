@@ -27,9 +27,10 @@ PUBLIC CONSOLE* current_con;
 #define SCREEN_WIDTH		80
 
 #define WHITE_COLOR	0x07	/* 0000 0111 黑底白字 */
-#define RED_COLOR 0x05  /* 0000 0101 黑底洋红字 */
+#define RED_COLOR 0x04  /* 0000 0101 黑底红字 */
 #define GREEN_COLOR 0x02  /* 0000 0010 黑底绿字 */
 #define BLUE_COLOR		0x01	/* 0000 0001 黑底蓝字 */
-
+#define YELLOW_COLOR 0x0e /* 0000 1110 黑底黄字 */
+#define GRAY_COLOR 0x08  /* 0000 1000 黑底灰字 */
 
 #endif /* _ORANGES_CONSOLE_H_ */

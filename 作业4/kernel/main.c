@@ -68,18 +68,24 @@ PUBLIC int kernel_main()
 	proc_table[2].ticks = proc_table[2].priority = 1;
 	proc_table[3].ticks = proc_table[3].priority = 1;
 	proc_table[4].ticks = proc_table[4].priority = 1;
+	proc_table[5].ticks = proc_table[5].priority = 1;
+	proc_table[6].ticks = proc_table[6].priority = 1;
 
 	proc_table[0].wait = proc_table[0].sleep_ticks = 0;
 	proc_table[1].wait = proc_table[1].sleep_ticks = 0;
 	proc_table[2].wait = proc_table[2].sleep_ticks = 0;
 	proc_table[3].wait = proc_table[3].sleep_ticks = 0;
 	proc_table[4].wait = proc_table[4].sleep_ticks = 0;
+	proc_table[5].wait = proc_table[5].sleep_ticks = 0;
+	proc_table[6].wait = proc_table[6].sleep_ticks = 0;
 
 	proc_table[0].next = 0;
     proc_table[1].next = 0;
 	proc_table[2].next = 0;
 	proc_table[3].next = 0;
 	proc_table[4].next = 0;
+	proc_table[5].next = 0;
+	proc_table[6].next = 0;
 
 	k_reenter = 0;
 	ticks = 0;
@@ -89,49 +95,68 @@ PUBLIC int kernel_main()
 	init_clock();
     init_keyboard();
 
+	init();
 	restart();
 
 	while(1){}
 }
 
+
 /*======================================================================*
-                               Barber
+                               Reader_A
  *======================================================================*/
-void Barber()
+void Reader_A()
 {
-	init();
-	barber();
+	
+	readers("A",20000);
+	
 }
 
 /*======================================================================*
-                               Customer_A
+                               Reader_B
  *======================================================================*/
-void Customer_A()
+void Reader_B()
 {
-	while(1){
-	customers("A");
-	system_process_sleep(10000);
-	}
+	
+	readers("B",30000);
+	
 }
 
 /*======================================================================*
-                               Customer_B
+                               Reader_C
  *======================================================================*/
-void Customer_B()
+void Reader_C()
 {
-	while(1){
-	customers("B");
-	system_process_sleep(10000);
-	}
+	
+	readers("C",30000);
+	
 }
 
 /*======================================================================*
-                               Customer_C
+                               Writer_D
  *======================================================================*/
-void Customer_C()
+void Writer_D()
 {
-	while(1){
-	customers("C");
-	system_process_sleep(10000);
-	}
+	
+	writers("D",30000);
+
 }
+/*======================================================================*
+                               Writer_E
+ *======================================================================*/
+void Writer_E()
+{
+	
+	writers("E",40000);
+
+}
+ 
+/*======================================================================*
+                               Simple_F
+ *======================================================================*/
+void Simple_F()
+{
+	info();
+	
+}
+ 

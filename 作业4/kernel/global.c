@@ -22,10 +22,12 @@ PUBLIC	PROCESS		proc_table[NR_TASKS];
 PUBLIC	char		task_stack[STACK_SIZE_TOTAL];
 
 PUBLIC	TASK	task_table[NR_TASKS] = {{task_tty, STACK_SIZE_TTY, "tty"},
-					                    {Barber, STACK_SIZE_Barber, "Barber"},
-										{Customer_A, STACK_SIZE_Customer_A, "Customer_A"},
-										{Customer_B, STACK_SIZE_Customer_B, "Customer_B"},
-										{Customer_C, STACK_SIZE_Customer_C, "Customer_C"}
+										{Reader_A, STACK_SIZE_Reader_A, "Reader_A"},
+										{Reader_B, STACK_SIZE_Reader_B, "Reader_B"},
+										{Reader_C, STACK_SIZE_Reader_C, "Reader_C"},
+					                    {Writer_D, STACK_SIZE_Writer_D, "Writer_D"},
+										{Writer_E, STACK_SIZE_Writer_E, "Writer_E"},	
+										{Simple_F,STACK_SIZE_Reader_C, "Simple_F"}
 									};
 
 PUBLIC	TTY		tty_table[NR_CONSOLES];
@@ -36,4 +38,4 @@ PUBLIC	irq_handler	irq_table[NR_IRQ];
 PUBLIC	system_call	sys_call_table[NR_SYS_CALL] = {sys_get_ticks, sys_process_sleep, sys_disp_str,  sys_P, sys_V};
 
 //color
-PUBLIC char			colors[NR_COLOR] = {WHITE_COLOR, RED_COLOR, GREEN_COLOR, BLUE_COLOR};
+PUBLIC char			colors[NR_COLOR] = {RED_COLOR, GREEN_COLOR, BLUE_COLOR,YELLOW_COLOR,GRAY_COLOR,WHITE_COLOR,WHITE_COLOR};

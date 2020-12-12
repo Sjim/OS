@@ -23,13 +23,13 @@ PUBLIC void clock_handler(int irq)
 {
 	ticks++;
 	p_proc_ready->ticks--;
-  clear_screen();
+        clear_screen();
 
 	if (k_reenter != 0) {
 		return;
 	}
 
-	if (p_proc_ready->ticks > 0) {
+	if (p_proc_ready->ticks > 0) {//进程的ticks没有为0之前其他的进程没有执行机会
 		return;
 	}
 
