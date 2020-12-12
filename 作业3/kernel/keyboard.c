@@ -149,7 +149,9 @@ PUBLIC void keyboard_read(TTY* p_tty)
 			keyrow = &keymap[(scan_code & 0x7F) * MAP_COLS];
 
 			column = 0;
-
+			if(!(ctrl_l||ctrl_r)){//松开ctrl
+				p_tty->p_console->ctrl=0;
+			}
 			int caps = shift_l || shift_r;
 			if (caps_lock) {
 				if ((keyrow[0] >= 'a') && (keyrow[0] <= 'z')){
@@ -174,10 +176,10 @@ PUBLIC void keyboard_read(TTY* p_tty)
 				shift_r = make;
 				break;
 			case CTRL_L:
-				ctrl_l = make;
+				ctrl_l=make;
 				break;
 			case CTRL_R:
-				ctrl_r = make;
+				ctrl_r=make;
 				break;
 			case ALT_L:
 				alt_l = make;
