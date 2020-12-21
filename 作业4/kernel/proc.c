@@ -18,11 +18,13 @@
 PRIVATE char buffer[10];
 PRIVATE int now;
 PRIVATE int readOrWrite;
-PRIVATE int waiting;
 PRIVATE int readcount;
 PRIVATE SEMAPHORE semaphores[5] = {
-	{1, 0}, {1, 0},{1,0},{2,0}
-	//rmutex,wmutex,s
+	{1, 0}, //读者更改readcount权限信号量
+	{1, 0}, //写进程wmutex,保证写进程之间互斥
+	{1, 0}, //写进程优先专用，限制读进程的进入
+	{2, 0}	//读者人数信号量
+
 };
 PRIVATE SEMAPHORE *first_semaphore;
 /*======================================================================*
@@ -43,7 +45,7 @@ PUBLIC void schedule()
 	}
 
 	while (!greatest_ticks)
-	{ 
+	{
 		for (p = proc_table; p < proc_table + NR_TASKS; p++)
 		{
 			if (p->wait || p->sleep_ticks)
@@ -54,7 +56,6 @@ PUBLIC void schedule()
 			{ //调整最大时钟
 				greatest_ticks = p->ticks;
 				p_proc_ready = p;
-				
 			}
 		}
 
@@ -163,7 +164,6 @@ PUBLIC int sys_V(SEMAPHORE *s)
 PUBLIC void init()
 {
 	readOrWrite = 0;
-	waiting = 0;
 	readcount = 0;
 	first_semaphore = semaphores;
 }
@@ -171,74 +171,73 @@ PUBLIC void init()
 /*======================================================================*
                            writer
  *======================================================================*/
-PUBLIC void writers(char *name,int time)
+PUBLIC void writers(char *name, int time)
 {
 	while (1)
 	{
-		system_P(first_semaphore+2);
-		system_P(first_semaphore+1);
+		system_P(first_semaphore + 2);
+		system_P(first_semaphore + 1);
 		system_disp_str(name);
 		system_disp_str(" is starting to write\n");
 		system_disp_str(name);
 		system_disp_str(" is writing\n");
-		readOrWrite  = 1;
+		readOrWrite = 1;
 		system_process_sleep(time);
 		system_disp_str(name);
 		system_disp_str(" finish writing\n");
-		system_V(first_semaphore+1);
-		system_V(first_semaphore+2);
+		system_V(first_semaphore + 1);
+		system_V(first_semaphore + 2);
 	}
 }
 
 /*======================================================================*
                            readers
  *======================================================================*/
-PUBLIC void readers(char *name,int time)
+PUBLIC void readers(char *name, int time)
 {
 	while (1)
 	{
-		system_P(first_semaphore+3);
-		system_P(first_semaphore+2);
-		
+		system_P(first_semaphore + 3);
+		system_P(first_semaphore + 2);
+
 		system_P(first_semaphore);
 		if (readcount == 0)
-			system_P(first_semaphore + 1);
+			system_P(first_semaphore + 1); //如是第一个读者进行读进程，判断是否有写进程在临界区，若有，读进程等待，若无，阻塞写进程
 		readcount++;
 		system_disp_str(name);
 		system_disp_str(" is starting to read\n");
 		system_V(first_semaphore);
-		
-		system_V(first_semaphore+2);
+
+		system_V(first_semaphore + 2);
 		system_disp_str(name);
 		system_disp_str(" is reading\n");
-		readOrWrite  = 0;
+		readOrWrite = 0;
 		system_process_sleep(time);
 		system_disp_str(name);
 		system_disp_str(" finish reading\n");
 		system_P(first_semaphore);
 		readcount--;
 		if (readcount == 0)
-			system_V(first_semaphore + 1);
+			system_V(first_semaphore + 1); //最后一个离开临界区的读进程需要判断是否有写进程需要进入临界区，若有，唤醒一个写进程进临界区
 		system_V(first_semaphore);
-		system_V(first_semaphore+3);
+		system_V(first_semaphore + 3);
 	}
 }
 
 /*======================================================================*
                           	info
  *======================================================================*/
-PUBLIC void info(){
+PUBLIC void info()
+{
 	while (1)
 	{
-		system_disp_str(!readOrWrite?"read:":"write");
-		if(!readOrWrite){
-			itoa(buffer,readcount);
+		system_disp_str(!readOrWrite ? "read:" : "write");
+		if (!readOrWrite)
+		{
+			itoa(buffer, readcount);
 			system_disp_str(buffer);
-		} 
+		}
 		system_disp_str("\n");
 		milli_delay(10000);
 	};
-	
-
-	
 }
